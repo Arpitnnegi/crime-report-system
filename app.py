@@ -2,7 +2,6 @@ import streamlit as st
 from datetime import datetime
 import pytz
 import json
-import pyperclip
 
 # Set page config
 st.set_page_config(
@@ -95,11 +94,16 @@ st.markdown("---")
 st.subheader("Evidence Links")
 
 if report_type == "Gang":
-    gang_proof = st.text_input("Proof of bodycam / refresh / upload:")
-    gang_footage = st.text_input("Bodycam Footage:")
-    gang_interrogation = st.text_input("Bodycam Footage of interrogation:")
-    gang_id = st.text_input("Culprit Identification Proof:")
-    gang_plates = st.text_input("License plates:")
+    col1_fields, col2_fields = st.columns(2)
+    
+    with col1_fields:
+        gang_proof = st.text_input("Proof of bodycam / refresh / upload:", key="gang_proof")
+        gang_footage = st.text_input("Bodycam Footage:", key="gang_footage")
+        gang_interrogation = st.text_input("Bodycam Footage of interrogation:", key="gang_interrogation")
+    
+    with col2_fields:
+        gang_id = st.text_input("Culprit Identification Proof:", key="gang_id")
+        gang_plates = st.text_input("License plates:", key="gang_plates")
     
     fields = {
         "Proof of bodycam / refresh / upload:": gang_proof,
@@ -109,13 +113,18 @@ if report_type == "Gang":
         "License plates:": gang_plates
     }
 else:
-    family_proof = st.text_input("Proof of bodycam / refresh / upload:")
-    family_footage = st.text_input("Bodycam Footage:")
-    family_id = st.text_input("Culprit Identification Proof:")
-    family_interrogation = st.text_input("Bodycam Footage of interrogation:")
-    family_plates = st.text_input("License plates:")
-    family_pda = st.text_input("License plates searched in PDA:")
-    family_owner = st.text_input("Owner of the car searched in PDA:")
+    col1_fields, col2_fields = st.columns(2)
+    
+    with col1_fields:
+        family_proof = st.text_input("Proof of bodycam / refresh / upload:", key="family_proof")
+        family_footage = st.text_input("Bodycam Footage:", key="family_footage")
+        family_id = st.text_input("Culprit Identification Proof:", key="family_id")
+        family_interrogation = st.text_input("Bodycam Footage of interrogation:", key="family_interrogation")
+    
+    with col2_fields:
+        family_plates = st.text_input("License plates:", key="family_plates")
+        family_pda = st.text_input("License plates searched in PDA:", key="family_pda")
+        family_owner = st.text_input("Owner of the car searched in PDA:", key="family_owner")
     
     fields = {
         "Proof of bodycam / refresh / upload:": family_proof,
@@ -161,46 +170,64 @@ if st.button("📋 Generate Report", type="primary", use_container_width=True):
         
         part2 += "=" * 50 + "\n"
         
+        # Store in session state
+        st.session_state.part1 = part1
+        st.session_state.part2 = part2
+        st.session_state.full_report = part1 + part2
+        
         # Display output
         st.markdown("---")
-        st.subheader("Generated Report")
+        st.subheader("✅ Report Generated Successfully!")
         
         # Create tabs for different parts
-        tab1, tab2, tab3 = st.tabs(["Full Report", "Part 1", "Part 2"])
+        tab1, tab2, tab3 = st.tabs(["📄 Full Report", "1️⃣ Part 1", "2️⃣ Part 2"])
         
         with tab1:
-            full_report = part1 + part2
-            st.code(full_report, language="text")
+            st.code(st.session_state.full_report, language="text")
             
             # Download button
             st.download_button(
-                label="💾 Download Report",
-                data=full_report,
+                label="💾 Download Full Report",
+                data=st.session_state.full_report,
                 file_name=f"{name}_{date.replace('.', '-')}.txt",
                 mime="text/plain"
             )
         
         with tab2:
-            st.code(part1.strip(), language="text")
-            if st.button("📋 Copy Part 1", key="copy1"):
-                st.write("Copied to clipboard!")
-                # In Streamlit Cloud, use st.write for copy
-                st.code(part1.strip())
+            st.code(st.session_state.part1.strip(), language="text")
+            
+            # Copy button using Streamlit's copy function
+            if st.button("📋 Copy Part 1", key="copy1", use_container_width=True):
+                st.code(st.session_state.part1.strip())
+                st.success("✅ Part 1 ready to copy! Select and copy the text above.")
         
         with tab3:
-            st.code(part2.strip(), language="text")
-            if st.button("📋 Copy Part 2", key="copy2"):
-                st.write("Copied to clipboard!")
-                st.code(part2.strip())
+            st.code(st.session_state.part2.strip(), language="text")
+            
+            if st.button("📋 Copy Part 2", key="copy2", use_container_width=True):
+                st.code(st.session_state.part2.strip())
+                st.success("✅ Part 2 ready to copy! Select and copy the text above.")
 
 # Clear Button
 if st.button("🔄 Clear All", use_container_width=True):
     st.session_state.clear()
     st.rerun()
 
-# Requirements file
-with open("requirements.txt", "w") as f:
-    f.write("""streamlit==1.28.0
-pytz==2023.3
-pyperclip==1.8.2
-""")
+# Instructions
+with st.expander("📖 How to use this app"):
+    st.markdown("""
+    ### **Steps to use:**
+    1. **Select** Gang or Family report type
+    2. **Enter** Name and Crime Type
+    3. **Select** crimes from the lists
+    4. **Paste** ImgBB links in evidence fields
+    5. **Click** "Generate Report"
+    6. **Use tabs** to view/copy different parts
+    7. **Download** the full report
+    
+    ### **Note about copying:**
+    - In web browsers, you need to **select the text** and **Ctrl+C**
+    - Or use the **Download button** to save as file
+    - Part 1: `Name | Crime | Date | Time`
+    - Part 2: Evidence links and crimes list
+    """)
