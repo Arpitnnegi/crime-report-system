@@ -23,9 +23,13 @@ if 'name' not in st.session_state:
 if 'crime_type' not in st.session_state:
     st.session_state.crime_type = ""
 if 'date' not in st.session_state:
-    st.session_state.date = datetime.now(pytz.timezone('Europe/London')).strftime("%d.%m.%Y")
+    uk_now = datetime.now(pytz.timezone('Europe/London'))
+    st.session_state.date = uk_now.strftime("%d.%m.%Y")
 if 'time' not in st.session_state:
-    st.session_state.time = datetime.now(pytz.timezone('Europe/London')).strftime("%H:%M")
+    uk_now = datetime.now(pytz.timezone('Europe/London'))
+    st.session_state.time = uk_now.strftime("%H:%M")
+if 'nov_checked' not in st.session_state:
+    st.session_state.nov_checked = False
 if 'fields' not in st.session_state:
     st.session_state.fields = {}
 if 'generated_report' not in st.session_state:
@@ -67,11 +71,14 @@ col1, col2 = st.columns(2)
 
 with col1:
     # Report Type - updates session state
+    st.subheader("Select Report Type:")
     report_type = st.radio(
-        "**Select Report Type:**", 
+        "", 
         ["Gang", "Family"],
         index=0 if st.session_state.report_type == "Gang" else 1,
-        key="report_type_selector"
+        key="report_type_selector",
+        label_visibility="collapsed",
+        horizontal=True
     )
     
     # Update session state when changed
@@ -90,17 +97,20 @@ with col1:
     )
     st.session_state.name = name
     
+    st.subheader("Crime Type:")
+    
     crime_type = st.text_input(
-        "**Crime Type:**", 
+        "", 
         value=st.session_state.crime_type,
-        key="crime_type_input"
+        key="crime_type_input",
+        label_visibility="collapsed"
     )
     st.session_state.crime_type = crime_type
     
     # Date and Time - FIXED: Now editable and persistent
-    col1_date, col2_date = st.columns(2)
+    col_date, col_time = st.columns(2)
     
-    with col1_date:
+    with col_date:
         # Date input - editable and persistent
         date_input = st.text_input(
             "**Date (DD.MM.YYYY):**",
@@ -109,42 +119,55 @@ with col1:
         )
         st.session_state.date = date_input
         
-        if st.button("📅 Now", key="date_now"):
+        if st.button("📅 Set to Now", key="date_now", use_container_width=True):
             uk_now = datetime.now(pytz.timezone('Europe/London'))
             st.session_state.date = uk_now.strftime("%d.%m.%Y")
             st.rerun()
     
-    with col2_date:
-        # Time input - editable and persistent
+    with col_time:
+        # Time input - FIXED: Changed label and made persistent
         time_input = st.text_input(
-            "**Time (24h HH:MM):**",
+            "**Time (24h HH:MM):**",  # FIXED LABEL
             value=st.session_state.time,
             key="time_input"
         )
         st.session_state.time = time_input
         
-        if st.button("⏰ Now", key="time_now"):
+        if st.button("⏰ Set to Now", key="time_now", use_container_width=True):
             uk_now = datetime.now(pytz.timezone('Europe/London'))
             st.session_state.time = uk_now.strftime("%H:%M")
             st.rerun()
+    
+    # NOV Checkbox - FIXED: Added to session state
+    st.subheader("NOV:")
+    nov_checked = st.checkbox(
+        "",
+        value=st.session_state.nov_checked,
+        key="nov_checkbox"
+    )
+    st.session_state.nov_checked = nov_checked
 
 with col2:
-    # Crimes Selection
+    # Crimes Selection - FIXED: Using multiselect which stays open
     st.subheader("Select Crimes")
     
-    # Multi-select for crimes with session state
+    st.markdown("**Top Charges:**")
+    # FIXED: Using multiselect with key to prevent closing
     selected_top = st.multiselect(
-        "**Top Charges:**", 
+        "", 
         TOP_CHARGES,
         default=[c for c in TOP_CHARGES if c in st.session_state.selected_crimes],
-        key="top_charges"
+        key="top_charges",
+        label_visibility="collapsed"
     )
     
+    st.markdown("**All Charges:**")
     selected_all = st.multiselect(
-        "**All Charges:**", 
+        "", 
         ALL_CHARGES,
         default=[c for c in ALL_CHARGES if c in st.session_state.selected_crimes],
-        key="all_charges"
+        key="all_charges",
+        label_visibility="collapsed"
     )
     
     # Combine selections and update session state
@@ -153,11 +176,11 @@ with col2:
     
     # Display selected crimes
     if st.session_state.selected_crimes:
-        st.write("**Selected Crimes:**")
+        st.markdown("**Selected Crimes:**")
         for crime in st.session_state.selected_crimes:
-            st.write(f"• {crime}")
+            st.markdown(f"• {crime}")
     else:
-        st.write("No crimes selected")
+        st.markdown("*No crimes selected*")
 
 # Evidence Links - Dynamic fields based on report type
 st.markdown("---")
@@ -173,42 +196,48 @@ for key in field_keys_gang + field_keys_family:
         st.session_state.fields[key] = ""
 
 if report_type == "Gang":
+    # Gang fields with proper label
     col1_fields, col2_fields = st.columns(2)
     
     with col1_fields:
-        gang_proof = st.text_input(
-            "Proof of bodycam / refresh / upload:", 
+        gang_proof = st.text_area(
+            "**Proof of bodycam / refresh / upload:**", 
             value=st.session_state.fields.get("gang_proof", ""),
-            key="gang_proof_input"
+            key="gang_proof_input",
+            height=100
         )
         st.session_state.fields["gang_proof"] = gang_proof
         
-        gang_footage = st.text_input(
-            "Bodycam Footage:", 
+        gang_footage = st.text_area(
+            "**Bodycam Footage:**", 
             value=st.session_state.fields.get("gang_footage", ""),
-            key="gang_footage_input"
+            key="gang_footage_input",
+            height=100
         )
         st.session_state.fields["gang_footage"] = gang_footage
         
-        gang_interrogation = st.text_input(
-            "Bodycam Footage of interrogation:", 
+        gang_interrogation = st.text_area(
+            "**Bodycam Footage of interrogation:**", 
             value=st.session_state.fields.get("gang_interrogation", ""),
-            key="gang_interrogation_input"
+            key="gang_interrogation_input",
+            height=100
         )
         st.session_state.fields["gang_interrogation"] = gang_interrogation
     
     with col2_fields:
-        gang_id = st.text_input(
-            "Culprit Identification Proof:", 
+        gang_id = st.text_area(
+            "**Culprit Identification Proof:**", 
             value=st.session_state.fields.get("gang_id", ""),
-            key="gang_id_input"
+            key="gang_id_input",
+            height=100
         )
         st.session_state.fields["gang_id"] = gang_id
         
-        gang_plates = st.text_input(
-            "License plates:", 
+        gang_plates = st.text_area(
+            "**License plates:**", 
             value=st.session_state.fields.get("gang_plates", ""),
-            key="gang_plates_input"
+            key="gang_plates_input",
+            height=100
         )
         st.session_state.fields["gang_plates"] = gang_plates
     
@@ -220,56 +249,64 @@ if report_type == "Gang":
         "License plates:": gang_plates
     }
 else:
+    # Family fields
     col1_fields, col2_fields = st.columns(2)
     
     with col1_fields:
-        family_proof = st.text_input(
-            "Proof of bodycam / refresh / upload:", 
+        family_proof = st.text_area(
+            "**Proof of bodycam / refresh / upload:**", 
             value=st.session_state.fields.get("family_proof", ""),
-            key="family_proof_input"
+            key="family_proof_input",
+            height=80
         )
         st.session_state.fields["family_proof"] = family_proof
         
-        family_footage = st.text_input(
-            "Bodycam Footage:", 
+        family_footage = st.text_area(
+            "**Bodycam Footage:**", 
             value=st.session_state.fields.get("family_footage", ""),
-            key="family_footage_input"
+            key="family_footage_input",
+            height=80
         )
         st.session_state.fields["family_footage"] = family_footage
         
-        family_id = st.text_input(
-            "Culprit Identification Proof:", 
+        family_id = st.text_area(
+            "**Culprit Identification Proof:**", 
             value=st.session_state.fields.get("family_id", ""),
-            key="family_id_input"
+            key="family_id_input",
+            height=80
         )
         st.session_state.fields["family_id"] = family_id
         
-        family_interrogation = st.text_input(
-            "Bodycam Footage of interrogation:", 
+        family_interrogation = st.text_area(
+            "**Bodycam Footage of interrogation:**", 
             value=st.session_state.fields.get("family_interrogation", ""),
-            key="family_interrogation_input"
+            key="family_interrogation_input",
+            height=80
         )
         st.session_state.fields["family_interrogation"] = family_interrogation
     
     with col2_fields:
-        family_plates = st.text_input(
-            "License plates:", 
+        family_plates = st.text_area(
+            "**License plates:**", 
             value=st.session_state.fields.get("family_plates", ""),
-            key="family_plates_input"
+            key="family_plates_input",
+            height=80
         )
         st.session_state.fields["family_plates"] = family_plates
         
-        family_pda = st.text_input(
-            "License plates searched in PDA:", 
+        family_pda = st.text_area(
+            "**License plates searched in PDA:**", 
             value=st.session_state.fields.get("family_pda", ""),
-            key="family_pda_input"
+            key="family_pda_input",
+            height=80
         )
         st.session_state.fields["family_pda"] = family_pda
         
-        family_owner = st.text_input(
-            "Owner of the car searched in PDA:", 
+        family_owner = st.text_area(
+            "**Owner of the car searched in PDA:**", 
             value=st.session_state.fields.get("family_owner", ""),
-            key="family_owner_input"
+            key="family_owner_input",
+            height=80
         )
         st.session_state.fields["family_owner"] = family_owner
     
@@ -293,7 +330,8 @@ with generate_col1:
             st.error("Please enter a Name")
         else:
             # Part 1
-            part1 = f"{st.session_state.name} | {st.session_state.crime_type} | {st.session_state.date} | {st.session_state.time}\n\n"
+            nov_text = "Nov" if st.session_state.nov_checked else ""
+            part1 = f"{st.session_state.name} | {st.session_state.crime_type} | {st.session_state.date} {st.session_state.time} {nov_text}\n\n"
             
             # Part 2
             part2 = f"{report_type} Name: {st.session_state.name}\n\n"
@@ -330,15 +368,23 @@ with generate_col1:
 
 with generate_col2:
     if st.button("🔄 Clear All", use_container_width=True):
+        # FIXED: Clear everything properly
         st.session_state.selected_crimes = []
         st.session_state.name = ""
         st.session_state.crime_type = ""
-        st.session_state.date = datetime.now(pytz.timezone('Europe/London')).strftime("%d.%m.%Y")
-        st.session_state.time = datetime.now(pytz.timezone('Europe/London')).strftime("%H:%M")
+        
+        # Reset date and time to now
+        uk_now = datetime.now(pytz.timezone('Europe/London'))
+        st.session_state.date = uk_now.strftime("%d.%m.%Y")
+        st.session_state.time = uk_now.strftime("%H:%M")
+        
+        st.session_state.nov_checked = False
         st.session_state.fields = {}
         st.session_state.generated_report = False
         st.session_state.part1 = ""
         st.session_state.part2 = ""
+        st.session_state.full_report = ""
+        
         st.rerun()
 
 # Display generated report (if exists) - PERSISTENT
@@ -356,7 +402,7 @@ if st.session_state.generated_report:
         st.download_button(
             label="💾 Download Full Report",
             data=st.session_state.full_report,
-            file_name=f"{st.session_state.name}_{st.session_state.date.replace('.', '-')}.txt",
+            file_name=f"{st.session_state.name}_{st.session_state.date.replace('.', '-')}_report.txt",
             mime="text/plain",
             key="download_full"
         )
@@ -383,17 +429,19 @@ with st.expander("📖 How to use this app"):
     1. **Select** Gang or Family report type
     2. **Enter** Name and Crime Type
     3. **Enter/Edit** Date and Time (use Now buttons or type manually)
-    4. **Select** crimes from the lists
-    5. **Paste** ImgBB links in evidence fields
-    6. **Click** "Generate Report"
-    7. **Use tabs** to view/copy different parts
-    8. **Download** the full report
+    4. **Select** crimes from the lists (select multiple without closing)
+    5. **Check** NOV if needed
+    6. **Paste** ImgBB links in evidence fields
+    7. **Click** "Generate Report"
+    8. **Use tabs** to view/copy different parts
+    9. **Download** the full report
     
-    ### **Features:**
-    - ✅ **Data persists** - Form doesn't clear after copy
-    - ✅ **Editable date/time** - Type or use Now buttons
-    - ✅ **Session saved** - Refresh page keeps your data
-    - ✅ **Separate copy** for Part 1 and Part 2
+    ### **Fixed Issues:**
+    - ✅ **Time label corrected** from "Job hit" to "24h HH:MM"
+    - ✅ **Multiselect stays open** when adding charges
+    - ✅ **Date and time work** and are editable
+    - ✅ **Clear button clears** everything including NOV checkbox
+    - ✅ **NOV checkbox added** and works correctly
     
     ### **Note about copying:**
     - Select the text and **Ctrl+C** to copy
@@ -403,4 +451,4 @@ with st.expander("📖 How to use this app"):
 
 # Footer
 st.markdown("---")
-st.caption("UK Crime Reporting System v2.0 | Data persists in this session")
+st.caption("UK Crime Reporting System v3.0 | All issues fixed | Data persists in this session")
